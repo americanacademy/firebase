@@ -1,0 +1,70 @@
+Database security to-do:
+
+The goal is to change the rules for the database and storage from this:
+	".read" = true
+	".write" = true
+
+To something in the format of:
+	".read" = true
+	".write" = if(... authenticated user ...)
+
+In particular, the goal is to allow only users with certain Google Accounts to write to both the database and the storage. 
+
+The Firebase documentation is immensely helpful here, it should be referred to as often as needed, and perhaps as often as possible. Its advice certainly trumps that espoused here.
+
+https://firebase.google.com/docs/database/security/
+https://firebase.google.com/docs/storage/security/
+
+To the first part, the database should already reflect '".read" = true;'
+The storage should also reflect 'allow read;'
+
+The authentication is verified every time a read or write operation is requested. The verification of authentication varies between the database and the storage aspects of authentication. 
+
+For google sign in, reference the documentation at this page:
+https://firebase.google.com/docs/auth/web/google-signin
+
+Reference this page to manage how authentication states are preserved:
+https://firebase.google.com/docs/auth/web/auth-state-persistence
+
+For reference, once a user logs in with their google account, they are issued a user ID (named 'uid' from here on out) and an authentication token. For reference to creating a google login page, reference this tutorial, which I found immensely useful, as well as its second part.
+
+https://www.youtube.com/watch?v=z3HD_1qA8Jc
+https://www.youtube.com/watch?v=hj28TPJQ2KU
+
+In summary, use the script provided on the firebase site above (copying and pasting the scripts as needed is sufficient) in order to create a button that, on click, creates a pop-up that serves Google's log-in page. On login, the user is authenticated and recieves a token that verifies this fact. You can then check their uid personally and verify that it is correct. 
+
+The "then" listener on the sign-in event will only activate once the sign in is completed. Use this to run the main portion of the code for the page.
+
+The best practice would be to have a node in the database labeled 'users', in which the user ids of users who are allowed to make edits are stored. This has the advantage that it is flexible. As the need to have users get different permissions, it's easy to change the system to reflext this, even for partial permissions instead of all-or-nothing read and write. 
+
+To do this for the database, follow along with the information on this page: https://firebase.google.com/docs/database/security/securing-data#referencing_data_in_other_paths . Simply check if the uid is inside the 'users' node as an allowed user for write authorization. 
+
+In storage, this may be far harder to do. If implementation fails, there is a fallback plan.
+
+The "not-quite-best" practice is to write the acceptable users into the rules themselves. Then, the write access would look like:
+	".write" = if auth != null && (auth.uid == uid1
+                                   ||  auth.uid == uid2
+                                           ...
+                                   ||  auth.uid == uidN)
+
+for N different uids.
+
+This is easy to implement for both database and storage, but unfortunately lacks in elegance and scalability. It is essential to always have the rules in the database and the storage be the same, otherwise the two will not be updated symetrically, leading to critical data errors. Similarly, this method will not scale well to a large number of users. Managing uids one-by-one is very painful and will take a large amount of time. This is especially true for if it eventually becomes necessary to allow different users different permissions, which would make permissions management in this way very difficult.
+
+Ultimately, the choice is on the developer to implement the first or the second. If too many problems arise in the elegant method, perhaps the inelegant one is to be preferred, with the understanding that it will likely cause issues when adding features in the future. 
+
+That concludes the authentication aspect. From here on out, we will discuss the implementation of authentication management on the back-end manager, so as to make authentication a smooth process for users.
+
+In the back-end, mark the whole page in a 'display:none' style boundary, except for a button that links to the google sign-in popup. On successful authentication (to verify that the user is authenticated, try to write data from the database and verify that it is correct, or check that the uid is in the 'users' node, or both), display the page contents with a '.show()' on the div that contains the remainder of the page. On a log-in error, display an error message.
+
+Of note: there have been problem marking the whole page as "display:none" in the past, particularly with chosen-selects. This style of security display may require further testing. 
+
+Storing the user id globally could be useful as it could provide logging of edits if that ever becomes necessary, so as to know which user made which changes to the database and storage. 
+
+This is simply an overview of how to implement security, and skims over the real difficulties of development and testing. The ultimate framework has two parts:
+	1. create a system that differentiates random users from users allowed permissions with firebase rules.
+	2. make the back-end only visible to authenticated users - the rules will handle the correct vs. incorrect user state. 
+
+Implementing this framework will stop a malicious agent from making direct attacks on the database. Instead, access to an allowed account will be required, which is far more difficult to break than simply finding the name of the Firebase (as is currently the only obstacle, and is written in plaintext in the code).
+
+Please read all the documentation before making any wide-spread changes. The documentation is also immensely useful in finding bugs. Correct use of documentation will increase adherence to best practices and help prevent problems before they arise.

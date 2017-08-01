@@ -1,0 +1,20 @@
+This document is intended to support the Firebase database and storage system used in the sciencepolicyatlas.com website. 
+
+The database is composed of three main nodes used in the website:
+	*entity
+	*entity-membership
+	*publication
+
+These nodes track different parts of the website. The entity table is composed of the individual information about each organization and collaboration in the database. They have certain shared characteristics between them that this node aims to exploit. Similar characteristics are stored under the same labels. Each key in this table is the unique key of an organization or collaboration, which will be used in the remainder of the project and is pivotal in the organization and collaboration profiles
+
+The entity-membership table tracks the links between organizations and collaborations. The keys of this table are the labels of collaborations (as these are the only types of entities that can contain sub-entities), and the values in the table are arrays of keys, where the keys can belong to both organizations and collaborations. Note the use of arrays may not be ideal, as Firebase does not process arrays correctly on occasion. Arrays also have implicit order, which is not particularly useful in this case. 
+
+The publication table is largely standalone, as it keeps track of the names and attributes of publications. The storage of the entity-uploader key keeps track of which member of the database uploaded the document. The name key is very important as it mirrors the Firebase cloud storage module. For every key in the publication node, there is exactly one item in the Firebase cloud storage, and the names in the Firebase storage must correspond exactly to the names in the publication node, otherwise the upload and delete features will not work. 
+
+The structure of this database might not seem ideal at first, as it seems immediately more rational to have one table for organizations and another for collaborations. This is not an effective structure. Since organizations and collaborations have significant links, keeping organizations and collaborations separate requires the links be tracked in two separate locations, which introduces a high risk of errors. While the links are two way, it's not difficult for only one end to be changed, leading to a faulty linkage. (This may seem unlikely, but was a common problem before the database restructure that led to the current format)
+
+It is fundamentally good practice to separate the problem into its component pieces and address each one. First, we have a storage of the individual attributes of entities, and second we have a storage of the collective attributes of entities. This separation is key to maintaining the database and website successfully, without it a lot of ambiguity is introduced into the structure and function of the system. Publications are largely standalone, and don't really depend on the behavior of the rest of the system. 
+
+As it is, the system adequately addresses the problem at hand. The database is fitted to the use cases we need. Until the database and featureset becomes far more static, no further restructures should be needed, and even then only for performance purposes. 
+
+In this section of the repository, there will also be included Python scripts (requiring Python 3.x) that were used to create the database from a previous restructure and modify it in the first few weeks of its existence. Hopefully, these should provide a guideline to any future modifications. It's understood that this is likely not the best method to make widespread changes to Firebase, but Python does offer a variety of quick and flexible tools, and this format of making changes is very resource-cheap, so it is adequate for most use cases. The code there is largely self-explanatory.
